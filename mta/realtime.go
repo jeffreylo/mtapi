@@ -7,31 +7,38 @@ import (
 	"net/http"
 	"regexp"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/google/gtfs-realtime-bindings/golang/gtfs"
+	"github.com/pkg/errors"
 )
+
+const stopRegex = "(?P<ID>.*)(?P<Direction>[NS])"
 
 func (c *Client) refreshFeed(feedID int) {
 	re := regexp.MustCompile(stopRegex)
 	req, _ := http.NewRequest("GET", c.getFeedURL(feedID), nil)
 	resp, err := c.httpClient().Do(req)
 	if err != nil {
-		log.Print(err)
+		log.Print(errors.Wrap(err, "mta: request failed"))
 		return
 	}
 	defer mustClose(resp.Body)
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		log.Print(err)
+		log.Print(errors.Wrap(err, "mta: read failed"))
 		return
 	}
 
 	feed := gtfs.FeedMessage{}
 	err = proto.Unmarshal(body, &feed)
 	if err != nil {
-		log.Print(err)
+		msg := err.Error()
+		if !strings.HasPrefix(msg, "proto") && !strings.HasPrefix(msg, "unexpected EOF") && !strings.HasPrefix(msg, "bad wiretype") {
+			log.Print(errors.Wrap(err, "mta: unmarshal failed"))
+		}
 		return
 	}
 
@@ -50,7 +57,7 @@ func (c *Client) refreshFeed(feedID int) {
 			if m[1] == "" {
 				continue
 			}
-			stop := c.GetStop(m[1])
+			stop := c.GetStop(StopID(m[1]))
 			if stop == nil {
 				continue
 			}

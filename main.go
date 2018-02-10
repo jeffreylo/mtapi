@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/jeffreylo/mtapi/mta"
+	"github.com/jeffreylo/mtapi/server"
 )
 
 func main() {
@@ -15,9 +16,8 @@ func main() {
 	)
 
 	flag.StringVar(&apiKey, "apiKey", "", "http://datamine.mta.info/")
-	flag.StringVar(&path, "path", "", "path to gtfs stops.txt")
+	flag.StringVar(&path, "gtfs", "", "gtfs directory")
 	flag.IntVar(&port, "port", 3000, "port for server")
-
 	flag.Parse()
 
 	if apiKey == "" {
@@ -28,13 +28,18 @@ func main() {
 	}
 
 	client, err := mta.NewClient(&mta.ClientConfig{
-		APIKey:        apiKey,
-		Port:          port,
-		StopsFilePath: path,
+		APIKey:            apiKey,
+		StopsFilePath:     path + "/stops.txt",
+		TransfersFilePath: path + "/transfers.txt",
 	})
 	if err != nil {
 		log.Fatal(err)
 	}
 	go client.Work()
-	log.Fatal(client.Serve())
+
+	server := server.New(&server.Params{
+		Client: client,
+		Port:   port,
+	})
+	log.Fatal(server.Serve())
 }

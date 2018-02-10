@@ -2,7 +2,6 @@ package mta
 
 import (
 	"crypto/tls"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"sync"
@@ -24,7 +23,9 @@ type Client struct {
 	ignoreSSL bool
 	port      int
 
-	stops   Stops
+	stops    Stops
+	stations Stations
+
 	err     chan error
 	done    chan struct{}
 	updated *time.Time
@@ -32,24 +33,26 @@ type Client struct {
 
 // ClientConfig defines the settings for the MTA client.
 type ClientConfig struct {
-	APIKey        string
-	IgnoreSSL     bool
-	Port          int
-	StopsFilePath string
+	APIKey            string
+	IgnoreSSL         bool
+	Port              int
+	StopsFilePath     string
+	TransfersFilePath string
 }
 
 // NewClient returns a new instance of the MTA client.
 func NewClient(cfg *ClientConfig) (*Client, error) {
-	stops, err := ParseStopsFile(cfg.StopsFilePath)
+	stops, stations, err := Parse(cfg.StopsFilePath, cfg.TransfersFilePath)
 	if err != nil {
 		return nil, err
 	}
 	c := &Client{
-		apiKey: cfg.APIKey,
-		stops:  stops,
-		port:   cfg.Port,
-		err:    make(chan error),
-		done:   make(chan struct{}),
+		apiKey:   cfg.APIKey,
+		stops:    stops,
+		stations: stations,
+		port:     cfg.Port,
+		err:      make(chan error),
+		done:     make(chan struct{}),
 	}
 	return c, nil
 }
@@ -87,73 +90,6 @@ func (c *Client) refreshFeeds() {
 	wg.Wait()
 }
 
-func (c *Client) stopHandler(w http.ResponseWriter, req *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-
-	if err := req.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	stopID := req.Form.Get("id")
-	if stopID == "" {
-		stops := make(map[string]interface{})
-		for _, stop := range c.stops {
-			stops[stop.ID] = map[string]interface{}{
-				"Name":        stop.Name,
-				"Coordinates": stop.Coordinates,
-			}
-		}
-		v, err := json.Marshal(stops)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		_, _ = w.Write(v)
-		return
-	}
-
-	stop := c.GetStop(stopID)
-	if stop == nil {
-		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
-		return
-	}
-
-	v, err := json.Marshal(map[string]interface{}{
-		"Stop": stop,
-	})
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	_, _ = w.Write(v)
-}
-
-func (c *Client) statusHandler(w http.ResponseWriter, req *http.Request) {
-	s, err := GetServiceStatus()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	v, err := json.Marshal(map[string]interface{}{
-		"Service": s,
-	})
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	w.Header().Set("Content-Type", "application/json")
-	_, _ = w.Write(v)
-}
-
-// Serve returns an http server.
-func (c *Client) Serve() error {
-	http.HandleFunc("/stops", c.stopHandler)
-	http.HandleFunc("/status", c.statusHandler)
-	return http.ListenAndServe(fmt.Sprintf(":%d", c.port), nil)
-}
-
 func (c *Client) httpClient() *http.Client {
 	if c.client == nil {
 		if c.ignoreSSL {
@@ -176,3 +112,6 @@ func (c *Client) getFeedURL(feedID int) string {
 func (c *Client) GetStops() Stops {
 	return c.stops
 }
+
+// Stations returns all stations.
+func (c *Client) Stations() Stations { return c.stations }
