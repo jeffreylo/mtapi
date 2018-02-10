@@ -5,4 +5,4 @@ Wrapping the MTA's GTFS API, aggregating stops.txt into stations (inspired by
 
 # Dependencies
 
-- [an MTA API key](http://datamine.mta.info/user/register)
+- [an MTA API key](http://datamine.mta.info/user)
