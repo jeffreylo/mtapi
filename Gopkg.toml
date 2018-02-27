@@ -26,15 +26,7 @@
 
 [[constraint]]
   branch = "master"
-  name = "github.com/bdon/go.gtfs"
-
-[[constraint]]
-  branch = "master"
   name = "github.com/google/gtfs-realtime-bindings"
-
-[[constraint]]
-  branch = "master"
-  name = "github.com/dustin/go-humanize"
 
 [metadata.heroku]
   root-package = "github.com/jeffreylo/mtapi"

@@ -3,9 +3,15 @@
 
 [[projects]]
   branch = "master"
-  name = "github.com/dustin/go-humanize"
+  name = "github.com/alecthomas/jsonschema"
   packages = ["."]
-  revision = "bb3d318650d48840a39aa21a027c6630e198e626"
+  revision = "c86885e0c9addf613840ec23eabcc9dfca60ab78"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/gocarina/gocsv"
+  packages = ["."]
+  revision = "45cbb9cde54ea46d800c4fcd1a686949ac6d87a3"
 
 [[projects]]
   branch = "master"
@@ -19,9 +25,27 @@
   packages = ["golang/gtfs"]
   revision = "32c4ed293b00ce7bd26c01d08638f28ae646fd8d"
 
+[[projects]]
+  branch = "master"
+  name = "github.com/intel-go/fastjson"
+  packages = ["."]
+  revision = "f846ae58a1ab4a99d9480ce565601aebd84e333a"
+
+[[projects]]
+  name = "github.com/osamingo/jsonrpc"
+  packages = ["."]
+  revision = "92d51847b98f375bd5db9fd00f8b36dbc279c384"
+  version = "v2.1"
+
+[[projects]]
+  name = "github.com/pkg/errors"
+  packages = ["."]
+  revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
+  version = "v0.8.0"
+
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "7e1616f85df6cabc1edff208b02db6f1570de9d6596abbbcfda29d800868ff08"
+  inputs-digest = "ca1404d0c1dcc5dad129f2d55581724a68873364567f5a7528db6db04ba4cdfc"
   solver-name = "gps-cdcl"
   solver-version = 1
