@@ -10,14 +10,16 @@ import (
 
 func main() {
 	var (
-		apiKey string
-		port   int
-		path   string
+		apiKey    string
+		ensureSSL bool
+		port      int
+		path      string
 	)
 
 	flag.StringVar(&apiKey, "apiKey", "", "http://datamine.mta.info/")
 	flag.StringVar(&path, "gtfs", "", "gtfs directory")
 	flag.IntVar(&port, "port", 3000, "port for server")
+	flag.BoolVar(&ensureSSL, "ensureSSL", true, "ensure SSL")
 	flag.Parse()
 
 	if apiKey == "" {
@@ -38,8 +40,9 @@ func main() {
 	go client.Work()
 
 	server := server.New(&server.Params{
-		Client: client,
-		Port:   port,
+		Client:    client,
+		EnsureSSL: ensureSSL,
+		Port:      port,
 	})
 	log.Fatal(server.Serve())
 }
