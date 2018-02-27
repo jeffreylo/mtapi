@@ -1,5 +1,7 @@
 # mtapi
 
+[![Build Status](https://travis-ci.org/jeffreylo/mtapi.svg?branch=master)](https://travis-ci.org/jeffreylo/mtapi)
+
 Wrapping the MTA's GTFS API, aggregating stops.txt into stations (inspired by
 [jonthorton's approach](https://github.com/jonthornton/MTAPI)).
 
