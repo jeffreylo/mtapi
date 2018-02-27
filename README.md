@@ -5,13 +5,13 @@
 Wrapping the MTA's GTFS API, aggregating stops.txt into stations (inspired by
 [jonthorton's approach](https://github.com/jonthornton/MTAPI)).
 
-# Dependencies
+## Dependencies
 
 - go
 - dep
 - [an MTA API key](http://datamine.mta.info/user)
 
-# Getting Started
+## Getting Started
 
 ```
 $ brew bundle
