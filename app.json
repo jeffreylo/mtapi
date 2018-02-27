@@ -1,0 +1,21 @@
+{
+  "name": "mtapi",
+  "description": "JSON-RPC 2.0 wrapper for the MTA API",
+  "scripts": {},
+  "env": {
+    "MTA_API_TOKEN": {
+      "required": true
+    }
+  },
+  "formation": {
+    "web": {
+      "quantity": 1
+    }
+  },
+  "addons": [],
+  "buildpacks": [
+    {
+      "url": "heroku/go"
+    }
+  ]
+}
