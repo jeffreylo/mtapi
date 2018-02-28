@@ -20,6 +20,7 @@ type Coordinates struct {
 
 // Update is a truncation of the GTFS spec.
 type Update struct {
+	TripID  string
 	RouteID string
 	Arrival *time.Time
 	Delay   int32
@@ -54,10 +55,14 @@ func (s Schedule) contains(u *Update) bool {
 
 func cleanupSchedule(s Schedule) {
 	now := time.Now()
+	tripIDs := make(map[string]struct{})
 	y := s[:0]
 	for _, n := range s {
-		if n.Arrival.After(now) {
-			y = append(y, n)
+		if _, ok := tripIDs[n.TripID]; !ok {
+			if n.Arrival.After(now) {
+				y = append(y, n)
+			}
+			tripIDs[n.TripID] = struct{}{}
 		}
 	}
 }

@@ -67,6 +67,7 @@ func (c *Client) refreshFeed(feedID int) {
 			if arrival != nil {
 				arrivalTime := time.Unix(arrival.GetTime(), 0).UTC()
 				update := &Update{
+					TripID:  trip.GetTripId(),
 					RouteID: trip.GetRouteId(),
 					Delay:   arrival.GetDelay(),
 					Arrival: &arrivalTime,
