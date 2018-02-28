@@ -12,6 +12,7 @@ type Coordinates struct {
 }
 
 type Update struct {
+	TripID  string
 	Arrival *time.Time
 	RouteID string
 }
@@ -34,6 +35,7 @@ func (p *Protocol) Schedules(v map[mta.Direction]mta.Schedule) Schedules {
 		vv := make([]*Update, 0, len(s))
 		for _, u := range s {
 			vv = append(vv, &Update{
+				TripID:  u.TripID,
 				Arrival: u.Arrival,
 				RouteID: u.RouteID,
 			})
