@@ -4,7 +4,6 @@ import (
 	"encoding/xml"
 	"io/ioutil"
 	"net/http"
-	"strings"
 	"time"
 )
 
@@ -24,12 +23,11 @@ type Subway struct {
 type SubwayLine struct {
 	Name   string `xml:"name"`
 	Status string `xml:"status"`
-	Text   string `xml:"text"`
 }
 
 type Status struct {
-	Line   string
-	Status string
+	Line string
+	OK   bool
 }
 
 type Service struct {
@@ -68,8 +66,8 @@ func (c *Client) GetServiceStatus() (*Service, error) {
 	status := make([]*Status, 0, len(service.Subway.Lines))
 	for _, line := range service.Subway.Lines {
 		status = append(status, &Status{
-			Line:   line.Name,
-			Status: strings.Title(line.Status),
+			Line: line.Name,
+			OK:   line.Status == "GOOD SERVICE",
 		})
 	}
 
