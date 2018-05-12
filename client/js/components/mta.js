@@ -2,6 +2,7 @@ import { h, Component } from "preact";
 import { DateTime } from "luxon";
 
 import rpc from "../rpc";
+import css from "./mta.css";
 
 // Times Square - 42 St.
 const defaultLatLon = { Lat: 40.7589545, Lon: -73.9849801 };
@@ -13,11 +14,15 @@ class MTA extends Component {
   }
 
   refreshFeed(coordinates) {
-    rpc.request("GetClosest", coordinates || defaultLatLon, (err, error, response) => {
-      if (response && response.Stations) {
-        this.setState({ stations: response.Stations, now: DateTime.utc() });
+    rpc.request(
+      "GetClosest",
+      coordinates || defaultLatLon,
+      (err, error, response) => {
+        if (response && response.Stations) {
+          this.setState({ stations: response.Stations, now: DateTime.utc() });
+        }
       }
-    });
+    );
   }
 
   componentDidMount() {
@@ -35,41 +40,62 @@ class MTA extends Component {
     clearInterval(this.timer);
   }
 
-  renderArrival(trips) {
-    if (!trips) return;
-
-    const t = trips.filter((v) => {
-      const arrival = DateTime.fromISO(v.Arrival, { setZone: true })
-      return Math.round(arrival.diff(this.state.now, 'minutes').toObject().minutes) > 0
+  renderArrival(header, trips = []) {
+    const t = trips.filter(v => {
+      const arrival = DateTime.fromISO(v.Arrival, { setZone: true });
+      return (
+        Math.round(arrival.diff(this.state.now, "minutes").toObject().minutes) >
+        0
+      );
     });
 
-    return t.map((v) => {
-      const arrival = DateTime.fromISO(v.Arrival, { setZone: true })
-      const time = Math.round(arrival.diff(this.state.now, 'minutes').toObject().minutes);
-      return <span>{v.RouteID}: {time} min<br /></span>
-    }).slice(0, 5);
+    let timings = t
+      .map(v => {
+        const arrival = DateTime.fromISO(v.Arrival, { setZone: true });
+        const time = Math.round(
+          arrival.diff(this.state.now, "minutes").toObject().minutes
+        );
+        return (
+          <span>
+            {v.RouteID}: {time} min<br />
+          </span>
+        );
+      })
+      .slice(0, 5) || [<span>-<br /></span>];
+    if (timings.length < 5) {
+      while (timings.length < 5) {
+        timings.push(<br />);
+      }
+    }
+    return (
+      <div>
+        <h4>{header}</h4>
+        {(timings.length && timings) || "-"}
+      </div>
+    );
   }
 
   renderStation(station) {
     if (!station) return;
+    let { Schedules } = station;
+    const schedules = Schedules || {};
+    const updated = Math.abs(DateTime.fromISO(station.Updated, { setZone: true }).diff(this.state.now, "seconds").toObject().seconds);
 
-    let schedules = (station.Schedules || {});
     return (
-      <div>
-        <h3>{station.Name}</h3>
-        <h4>N</h4>
-        {(schedules.N || []).length > 0 &&
-         this.renderArrival(schedules.N)}
-        <h4>S</h4>
-        {(schedules.S || []).length > 0 &&
-         this.renderArrival(schedules.S)}
-      </div>
+      <pre className={css.station}>
+        <p>
+          <strong>{station.Name}</strong>
+        </p>
+        {updated && <p>{updated}s ago</p>}
+        {this.renderArrival("N", schedules.N)}
+        {this.renderArrival("S", schedules.S)}
+      </pre>
     );
   }
 
   render(props, state) {
     let stations = state.stations;
-    return <div>{stations.map(v => this.renderStation(v))}</div>;
+    return <div className={css.container}>{stations.map(v => this.renderStation(v))}</div>;
   }
 }
 
