@@ -8,6 +8,12 @@
   revision = "c86885e0c9addf613840ec23eabcc9dfca60ab78"
 
 [[projects]]
+  name = "github.com/dcowgill/envflag"
+  packages = ["."]
+  revision = "c6949bc26c30960a5b5ce8d7cdcf53350fd6812d"
+  version = "v1.0"
+
+[[projects]]
   branch = "master"
   name = "github.com/gocarina/gocsv"
   packages = ["."]
@@ -32,6 +38,12 @@
   revision = "f846ae58a1ab4a99d9480ce565601aebd84e333a"
 
 [[projects]]
+  name = "github.com/julienschmidt/httprouter"
+  packages = ["."]
+  revision = "8c199fb6259ffc1af525cc3ad52ee60ba8359669"
+  version = "v1.1"
+
+[[projects]]
   name = "github.com/osamingo/jsonrpc"
   packages = ["."]
   revision = "92d51847b98f375bd5db9fd00f8b36dbc279c384"
@@ -46,6 +58,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "ca1404d0c1dcc5dad129f2d55581724a68873364567f5a7528db6db04ba4cdfc"
+  inputs-digest = "a1f35ecb0d3f699c28fc94bc27f9090d9231fc19340aa53005adf6f99e8ab57f"
   solver-name = "gps-cdcl"
   solver-version = 1
