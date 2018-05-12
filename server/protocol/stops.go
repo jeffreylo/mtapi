@@ -2,6 +2,7 @@ package protocol
 
 import (
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/jeffreylo/mtapi/mta"
@@ -49,8 +50,8 @@ func (p *Protocol) Schedules(v map[mta.Direction]mta.Schedule) Schedules {
 		vv := make([]*Update, 0, len(s))
 		for _, u := range s {
 			routeID := u.RouteID
-			if remapID, ok := routeMap[routeID]; ok {
-				routeID = remapID
+			if strings.HasSuffix(routeID, "S") {
+				routeID = "S"
 			}
 
 			vv = append(vv, &Update{
@@ -92,8 +93,4 @@ func (p *Protocol) Stations(stations mta.Stations) []*Station {
 		})
 	}
 	return result
-}
-
-var routeMap = map[string]string{
-	"GS": "S",
 }
