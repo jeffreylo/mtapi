@@ -12,8 +12,8 @@ class MTA extends Component {
     this.state = { stations: [], now: DateTime.utc() };
   }
 
-  refreshFeed() {
-    rpc.request("GetClosest", (this.props || {}).coordinates || defaultLatLon, (err, error, response) => {
+  refreshFeed(coordinates) {
+    rpc.request("GetClosest", coordinates || defaultLatLon, (err, error, response) => {
       if (response && response.Stations) {
         this.setState({ stations: response.Stations, now: DateTime.utc() });
       }
@@ -21,8 +21,14 @@ class MTA extends Component {
   }
 
   componentDidMount() {
-    this.refreshFeed();
-    this.timer = setInterval(this.refreshFeed, 30000);
+    this.refreshFeed(this.props.coordinates);
+    this.timer = setInterval(() => {
+      this.refreshFeed(this.props.coordinates);
+    }, 30000);
+  }
+
+  componentWillReceiveProps(nextProps) {
+    this.refreshFeed(nextProps.coordinates);
   }
 
   componentWillUnmount() {
