@@ -61,7 +61,11 @@ class MTA extends Component {
           </span>
         );
       })
-      .slice(0, 5) || [<span>-<br /></span>];
+      .slice(0, 5) || [
+      <span>
+        -<br />
+      </span>
+    ];
     if (timings.length < 5) {
       while (timings.length < 5) {
         timings.push(<br />);
@@ -79,23 +83,37 @@ class MTA extends Component {
     if (!station) return;
     let { Schedules } = station;
     const schedules = Schedules || {};
-    const updated = Math.abs(DateTime.fromISO(station.Updated, { setZone: true }).diff(this.state.now, "seconds").toObject().seconds);
+    const updated = Math.round(
+      DateTime.fromISO(station.Updated, { setZone: true })
+        .diff(this.state.now, "minutes")
+        .toObject().minutes
+    );
 
     return (
       <pre className={css.station}>
         <p>
           <strong>{station.Name}</strong>
         </p>
-        {updated && <p>{updated}s ago</p>}
         {this.renderArrival("N", schedules.N)}
         {this.renderArrival("S", schedules.S)}
+        <p className={css.updated}>
+          <small>
+            {(updated && <span>~{Math.abs(updated)} min ago</span>) || (
+              <span>recently</span>
+            )}
+          </small>
+        </p>
       </pre>
     );
   }
 
   render(props, state) {
     let stations = state.stations;
-    return <div className={css.container}>{stations.map(v => this.renderStation(v))}</div>;
+    return (
+      <div className={css.container}>
+        {stations.map(v => this.renderStation(v))}
+      </div>
+    );
   }
 }
 
