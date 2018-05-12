@@ -8,6 +8,6 @@ trim_trailing_whitespace = true
 [*.go]
 indent_style = tab
 
-[*.toml]
+[{*.html,*.css,*.js,*.json,*.toml}]
 indent_style = space
 indent_size = 2
