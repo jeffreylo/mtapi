@@ -1,0 +1,30 @@
+{
+  "name": "mtapi-client",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "scripts": {
+    "build": "webpack"
+  },
+  "dependencies": {
+    "jayson": "2.0.6",
+    "luxon": "1.2.0",
+    "node-fetch": "2.1.2",
+    "preact": "8.2.9",
+    "query-string": "6.1.0"
+  },
+  "devDependencies": {
+    "babel": "6.23.0",
+    "babel-loader": "7.1.4",
+    "babel-plugin-transform-react-jsx": "6.24.1",
+    "babel-preset-env": "1.7.0",
+    "babel-preset-stage-0": "6.24.1",
+    "copy-webpack-plugin": "4.5.1",
+    "css-loader": "0.28.11",
+    "prettier": "1.12.1",
+    "prettier-cli": "0.1.0",
+    "style-loader": "0.21.0",
+    "webpack": "4.8.2",
+    "webpack-cli": "2.1.3"
+  }
+}
