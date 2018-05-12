@@ -1,0 +1,12 @@
+{
+  "name": "mtapi",
+  "private": true,
+  "version": "0.1.0",
+  "engines": {
+    "yarn": "1.6.0"
+  },
+  "scripts": {
+    "heroku-prebuild": "cd client && yarn install --production=false",
+    "heroku-postbuild": "cd client && yarn build"
+  }
+}
