@@ -11,14 +11,14 @@ import (
 
 func main() {
 	var (
-		apiKey    = flag.String("api-key", "", "API key from http://datamine.mta.info/")
-		ensureSSL = flag.Bool("ensure-ssl", true, "always redirect to https://")
-		port      = flag.Int("port", 3000, "port for server")
-		path      = flag.String("gtfs-path", "", "gtfs directory")
+		apiKey     = flag.String("api-key", "", "API key from http://datamine.mta.info/")
+		ensureSSL  = flag.Bool("ensure-ssl", true, "always redirect to https://")
+		path       = flag.String("gtfs-path", "", "gtfs directory")
+		port       = flag.Int("port", 3000, "port for server")
+		staticPath = flag.String("static-path", "", "path to static directory")
 	)
 
 	flag.Parse()
-
 	envflag.Parse()
 
 	if *apiKey == "" {
@@ -27,7 +27,9 @@ func main() {
 	if *path == "" {
 		log.Fatal("missing path")
 	}
-
+	if *staticPath == "" {
+		log.Fatal("missing static path")
+	}
 	client, err := mta.NewClient(&mta.ClientConfig{
 		APIKey:            *apiKey,
 		StopsFilePath:     *path + "/stops.txt",
@@ -39,9 +41,10 @@ func main() {
 	go client.Work()
 
 	server := server.New(&server.Params{
-		Client:    client,
-		EnsureSSL: *ensureSSL,
-		Port:      *port,
+		Client:     client,
+		EnsureSSL:  *ensureSSL,
+		Port:       *port,
+		StaticPath: *staticPath,
 	})
 	log.Fatal(server.Serve())
 }

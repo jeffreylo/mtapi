@@ -19,14 +19,16 @@ type Server struct {
 	client     *mta.Client
 	port       int
 	dispatcher *jsonrpc.MethodRepository
+	staticPath string
 	ensureSSL  bool
 }
 
 // Params defines the server dependencies.
 type Params struct {
-	Client    *mta.Client
-	Port      int
-	EnsureSSL bool
+	Client     *mta.Client
+	EnsureSSL  bool
+	Port       int
+	StaticPath string
 }
 
 // New returns a server instance with the specified parameters.
@@ -39,9 +41,10 @@ func New(p *Params) *Server {
 
 	return &Server{
 		client:     p.Client,
-		port:       p.Port,
 		dispatcher: mr,
 		ensureSSL:  p.EnsureSSL,
+		port:       p.Port,
+		staticPath: p.StaticPath,
 	}
 }
 
@@ -62,14 +65,18 @@ func ensureSSL(next http.Handler) http.Handler {
 func (s *Server) Serve() error {
 	m := httprouter.New()
 
-	var rpcHandler http.Handler
+	var fileHandler, indexHandler, rpcHandler http.Handler
+	fileHandler = http.StripPrefix("/static/", http.FileServer(http.Dir(s.staticPath)))
+	indexHandler = http.HandlerFunc(serveTemplate)
 	rpcHandler = s.dispatcher
 	if s.ensureSSL {
-		rpcHandler = ensureSSL(s.dispatcher)
+		fileHandler = ensureSSL(fileHandler)
+		indexHandler = ensureSSL(indexHandler)
+		rpcHandler = ensureSSL(rpcHandler)
 	}
 
-	m.Handler("GET", "/static/*filepath", http.StripPrefix("/static/", http.FileServer(http.Dir("./client/dist"))))
-	m.Handler("GET", "/", http.HandlerFunc(serveTemplate))
+	m.Handler("GET", "/static/*filepath", fileHandler)
+	m.Handler("GET", "/", indexHandler)
 	m.Handler("POST", "/rpc", rpcHandler)
 
 	srv := &http.Server{
@@ -89,8 +96,6 @@ func serveTemplate(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, http.StatusText(500), 500)
 		return
 	}
-
-	r.ParseForm()
 
 	if err := tmpl.ExecuteTemplate(w, "layout", nil); err != nil {
 		log.Println(err.Error())
