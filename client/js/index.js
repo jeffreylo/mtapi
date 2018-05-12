@@ -1,12 +1,14 @@
 import { h, render } from "preact";
 import queryString from "query-string";
 
+import { getLocation } from "./location";
 import MTA from "./components/mta";
 
+// Acquire coordinates from query-string or location storage.
+let coordinates;
 const latitude = parseFloat(localStorage.getItem("latitude"));
 const longitude = parseFloat(localStorage.getItem("longitude"));
 
-let coordinates;
 if (location.search) {
   const parsed = queryString.parse(location.search);
   if (parsed.lat && parsed.lon) {
@@ -21,34 +23,19 @@ const renderApp = coordinates => {
   render(<MTA coordinates={coordinates} />, rootNode, rootNode.lastChild);
 };
 
+// Render app with existing or specified knowledge.
 renderApp(coordinates);
 
-const getLocation = () => {
-  const geolocation = navigator.geolocation;
-
-  const location = new Promise((resolve, reject) => {
-    if (!geolocation) {
-      reject(new Error("navigator not supported"));
-    }
-    geolocation.getCurrentPosition(
-      position => {
-        resolve(position);
-      },
-      () => {
-        reject(new Error("navigator permission denied"));
-      }
-    );
+// If we don't have navigator permissions or a specified lat/lon, prompt for
+// permissions.
+if (!location.search) {
+  getLocation().then(location => {
+    const coordinates = {
+      Lat: location.coords.latitude,
+      Lon: location.coords.longitude
+    };
+    localStorage.setItem("latitude", location.coords.latitude);
+    localStorage.setItem("longitude", location.coords.longitude);
+    renderApp(coordinates);
   });
-
-  return location;
-};
-
-getLocation().then(location => {
-  const coordinates = {
-    Lat: location.coords.latitude,
-    Lon: location.coords.longitude
-  };
-  localStorage.setItem("latitude", location.coords.latitude);
-  localStorage.setItem("longitude", location.coords.longitude);
-  renderApp(coordinates);
-});
+}
