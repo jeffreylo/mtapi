@@ -1,6 +1,7 @@
 package protocol
 
 import (
+	"sort"
 	"time"
 
 	"github.com/jeffreylo/mtapi/mta"
@@ -15,6 +16,19 @@ type Update struct {
 	TripID  string
 	Arrival *time.Time
 	RouteID string
+}
+
+// UpdateByArrival sorts Update by arrival time.
+type UpdateByArrival []*Update
+
+func (s UpdateByArrival) Len() int {
+	return len(s)
+}
+func (s UpdateByArrival) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
+func (s UpdateByArrival) Less(i, j int) bool {
+	return s[i].Arrival.Before(*s[j].Arrival)
 }
 
 type Schedules map[mta.Direction][]*Update
@@ -34,13 +48,19 @@ func (p *Protocol) Schedules(v map[mta.Direction]mta.Schedule) Schedules {
 	for d, s := range v {
 		vv := make([]*Update, 0, len(s))
 		for _, u := range s {
+			routeID := u.RouteID
+			if remapID, ok := routeMap[routeID]; ok {
+				routeID = remapID
+			}
+
 			vv = append(vv, &Update{
 				TripID:  u.TripID,
 				Arrival: u.Arrival,
-				RouteID: u.RouteID,
+				RouteID: routeID,
 			})
 		}
 		w[d] = vv
+		sort.Sort(UpdateByArrival(w[d]))
 	}
 	return w
 }
@@ -72,4 +92,8 @@ func (p *Protocol) Stations(stations mta.Stations) []*Station {
 		})
 	}
 	return result
+}
+
+var routeMap = map[string]string{
+	"GS": "S",
 }

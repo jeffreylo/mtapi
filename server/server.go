@@ -2,7 +2,10 @@ package server
 
 import (
 	"fmt"
+	"html/template"
+	"log"
 	"net/http"
+	"path/filepath"
 	"time"
 
 	"github.com/jeffreylo/mtapi/mta"
@@ -64,7 +67,11 @@ func (s *Server) Serve() error {
 	if s.ensureSSL {
 		rpcHandler = ensureSSL(s.dispatcher)
 	}
+
+	m.Handler("GET", "/static/*filepath", http.StripPrefix("/static/", http.FileServer(http.Dir("./client/dist"))))
+	m.Handler("GET", "/", http.HandlerFunc(serveTemplate))
 	m.Handler("POST", "/rpc", rpcHandler)
+
 	srv := &http.Server{
 		Addr:         fmt.Sprintf(":%d", s.port),
 		Handler:      m,
@@ -72,6 +79,23 @@ func (s *Server) Serve() error {
 		WriteTimeout: 10 * time.Second,
 	}
 	return srv.ListenAndServe()
+}
+
+func serveTemplate(w http.ResponseWriter, r *http.Request) {
+	lp := filepath.Join("client", "templates", "index.html")
+	tmpl, err := template.ParseFiles(lp)
+	if err != nil {
+		log.Println(err.Error())
+		http.Error(w, http.StatusText(500), 500)
+		return
+	}
+
+	r.ParseForm()
+
+	if err := tmpl.ExecuteTemplate(w, "layout", nil); err != nil {
+		log.Println(err.Error())
+		http.Error(w, http.StatusText(500), 500)
+	}
 }
 
 func must(err error) {

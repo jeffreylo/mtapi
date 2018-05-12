@@ -34,7 +34,13 @@ func Parse(stopsPath string, transfersPath string) (Stops, Stations, *kdtree.KDT
 		return !strings2.SliceContains(separateStations, string(t.FromStopID)) && !strings2.SliceContains(separateStations, string(t.ToStopID))
 	}
 
-	nameMap := map[StopID]StopID{"L03": "R20"}
+	nameMap := map[StopID]StopID{
+		"L03": "R20",
+		"127": "127",
+		"725": "127",
+		"902": "127",
+		"R16": "127",
+	}
 
 	if stopsPath == "" {
 		stopsPath = defaultStopsFile
@@ -87,29 +93,34 @@ func Parse(stopsPath string, transfersPath string) (Stops, Stations, *kdtree.KDT
 			continue
 		}
 
-		_, originExists := stations[transfer.FromStopID]
+		originID := transfer.FromStopID
+		if remapID, ok := nameMap[originID]; ok {
+			originID = remapID
+		}
+		_, originExists := stations[originID]
 		if !originExists {
-			v, ok := stops[transfer.FromStopID]
+			v, ok := stops[originID]
 			if !ok {
 				continue
 			}
 
-			stations[transfer.FromStopID] = &Station{
-				ID:          transfer.FromStopID,
+			stations[originID] = &Station{
+				ID:          originID,
 				Coordinates: v.Coordinates,
 				Stops:       make(map[StopID]struct{}),
 			}
-			stations[transfer.FromStopID].Stops[transfer.FromStopID] = struct{}{}
-			tree.Insert(points.NewPoint([]float64{v.Coordinates.Lat, v.Coordinates.Lon}, transfer.FromStopID))
-			sentinel[transfer.FromStopID] = struct{}{}
+
+			stations[originID].Stops[originID] = struct{}{}
+			tree.Insert(points.NewPoint([]float64{v.Coordinates.Lat, v.Coordinates.Lon}, originID))
+			sentinel[originID] = struct{}{}
 		}
 
 		if isSeparateStation(transfer) {
-			stations[transfer.FromStopID].Stops[transfer.ToStopID] = struct{}{}
+			stations[originID].Stops[transfer.ToStopID] = struct{}{}
 			sentinel[transfer.ToStopID] = struct{}{}
 		} else {
-			stations[transfer.FromStopID].Stops[transfer.FromStopID] = struct{}{}
-			sentinel[transfer.FromStopID] = struct{}{}
+			stations[originID].Stops[originID] = struct{}{}
+			sentinel[originID] = struct{}{}
 		}
 	}
 
