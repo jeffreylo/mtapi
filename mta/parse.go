@@ -4,13 +4,15 @@ import (
 	"os"
 	"strings"
 
+	"github.com/Kyroy/kdtree"
+	"github.com/Kyroy/kdtree/points"
 	"github.com/gocarina/gocsv"
 	"github.com/jeffreylo/mtapi/pkg/strings2"
 )
 
 // Parse parses the configuration files to create a Stops and
 // Stations.
-func Parse(stopsPath string, transfersPath string) (Stops, Stations, error) {
+func Parse(stopsPath string, transfersPath string) (Stops, Stations, *kdtree.KDTree, error) {
 	type stopRow struct {
 		ID            StopID  `csv:"stop_id"`
 		Name          string  `csv:"stop_name"`
@@ -78,6 +80,7 @@ func Parse(stopsPath string, transfersPath string) (Stops, Stations, error) {
 	}
 
 	sentinel := make(map[StopID]struct{})
+	tree := kdtree.New(nil)
 	stations := make(Stations, len(transferRows))
 	for _, transfer := range transferRows {
 		if _, ok := sentinel[transfer.ToStopID]; ok {
@@ -97,6 +100,7 @@ func Parse(stopsPath string, transfersPath string) (Stops, Stations, error) {
 				Stops:       make(map[StopID]struct{}),
 			}
 			stations[transfer.FromStopID].Stops[transfer.FromStopID] = struct{}{}
+			tree.Insert(points.NewPoint([]float64{v.Coordinates.Lat, v.Coordinates.Lon}, transfer.FromStopID))
 			sentinel[transfer.FromStopID] = struct{}{}
 		}
 
@@ -121,5 +125,5 @@ func Parse(stopsPath string, transfersPath string) (Stops, Stations, error) {
 		station.Name = strings.Join(names, " / ")
 	}
 
-	return stops, stations, nil
+	return stops, stations, tree, nil
 }

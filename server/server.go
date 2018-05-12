@@ -32,6 +32,7 @@ func New(p *Params) *Server {
 	must(mr.RegisterMethod("GetSystemStatus", GetSystemStatusHandler{client: p.Client, p: protocol.New()}, nil, GetSystemStatusResult{}))
 	must(mr.RegisterMethod("GetStations", GetStationsHandler{client: p.Client, p: protocol.New()}, nil, GetStationsResult{}))
 	must(mr.RegisterMethod("GetStation", GetStationHandler{client: p.Client, p: protocol.New()}, GetStationParams{}, GetStationResult{}))
+	must(mr.RegisterMethod("GetClosest", GetClosestHandler{client: p.Client, p: protocol.New()}, GetClosestParams{}, GetClosestResult{}))
 
 	return &Server{
 		client:     p.Client,

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/Kyroy/kdtree/points"
 	"github.com/intel-go/fastjson"
 	"github.com/jeffreylo/mtapi/mta"
 	"github.com/jeffreylo/mtapi/server/protocol"
@@ -42,7 +43,7 @@ func (h GetStationHandler) ServeJSONRPC(c context.Context, params *fastjson.RawM
 		return nil, err
 	}
 
-	stops := h.client.GetStops()
+	stops := h.client.Stops()
 	stations := h.client.Stations()
 	station, ok := stations[mta.StopID(p.ID)]
 	if !ok {
@@ -70,3 +71,45 @@ func (h GetStationHandler) ServeJSONRPC(c context.Context, params *fastjson.RawM
 
 // GetStationResult describes the response of the GetStations RPC.
 type GetStationResult struct{ Station interface{} }
+
+// GetClosestHandler returns the nearest stations.
+type GetClosestHandler struct {
+	client *mta.Client
+	p      *protocol.Protocol
+}
+
+// GetClosestParams defines the parameters of the GetClosest RPC.
+type GetClosestParams struct{ Lat, Lon float64 }
+
+// ServeJSONRPC implements the jsonrpc handler interface.
+func (h GetClosestHandler) ServeJSONRPC(c context.Context, params *fastjson.RawMessage) (interface{}, *jsonrpc.Error) {
+	var p GetClosestParams
+	if err := jsonrpc.Unmarshal(params, &p); err != nil {
+		return nil, err
+	}
+
+	tree := h.client.Tree()
+	results := tree.KNN(&points.Point{Coordinates: []float64{p.Lat, p.Lon}}, 5)
+	stations := make([]*protocol.Station, 0, len(results))
+	for _, v := range results {
+		point := v.(*points.Point)
+		s := h.client.Stations()[point.Data.(mta.StopID)]
+		stationSchedule := make(map[mta.Direction]mta.Schedule)
+		var updated *time.Time
+		for _, id := range s.StopIDs() {
+			stop := h.client.Stops()[id]
+			for d, s := range stop.Schedules {
+				if _, ok := stationSchedule[d]; !ok {
+					stationSchedule[d] = make(mta.Schedule, 0, len(s))
+				}
+				stationSchedule[d] = append(stationSchedule[d], s...)
+			}
+			updated = stop.Updated
+		}
+		stations = append(stations, h.p.Station(s, stationSchedule, updated))
+	}
+	return GetClosestResult{Stations: stations}, nil
+}
+
+// GetClosestResult is the result.
+type GetClosestResult struct{ Stations interface{} }
