@@ -4,10 +4,10 @@ import (
 	"os"
 	"strings"
 
-	"github.com/Kyroy/kdtree"
-	"github.com/Kyroy/kdtree/points"
 	"github.com/gocarina/gocsv"
 	"github.com/jeffreylo/mtapi/pkg/strings2"
+	"github.com/kyroy/kdtree"
+	"github.com/kyroy/kdtree/points"
 )
 
 // Parse parses the configuration files to create a Stops and

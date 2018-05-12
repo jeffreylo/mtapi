@@ -44,6 +44,22 @@
   version = "v1.1"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/kyroy/kdtree"
+  packages = [
+    ".",
+    "kdrange",
+    "points"
+  ]
+  revision = "3b2338ef86942aedeccac69b3c1727511437bc0a"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/kyroy/priority-queue"
+  packages = ["."]
+  revision = "6e21825e7e0ca92bdc3f8e23ca97afdf3b9d2554"
+
+[[projects]]
   name = "github.com/osamingo/jsonrpc"
   packages = ["."]
   revision = "92d51847b98f375bd5db9fd00f8b36dbc279c384"
@@ -58,6 +74,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "a1f35ecb0d3f699c28fc94bc27f9090d9231fc19340aa53005adf6f99e8ab57f"
+  inputs-digest = "7e0ebc4f4384f73c0bf301ede4683f6f471272eb8dc8db7095665d0dd96dda5c"
   solver-name = "gps-cdcl"
   solver-version = 1

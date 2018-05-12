@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/Kyroy/kdtree/points"
 	"github.com/intel-go/fastjson"
 	"github.com/jeffreylo/mtapi/mta"
 	"github.com/jeffreylo/mtapi/server/protocol"
+	"github.com/kyroy/kdtree/points"
 	"github.com/osamingo/jsonrpc"
 )
 

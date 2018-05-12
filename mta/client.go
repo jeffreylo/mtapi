@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Kyroy/kdtree"
+	"github.com/kyroy/kdtree"
 )
 
 const (
