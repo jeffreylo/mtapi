@@ -10,7 +10,7 @@ const defaultLatLon = { Lat: 40.7589545, Lon: -73.9849801 };
 class MTA extends Component {
   constructor() {
     super();
-    this.state = { stations: [], now: DateTime.utc() };
+    this.state = { stations: [] };
   }
 
   refreshFeed(coordinates) {
@@ -19,7 +19,7 @@ class MTA extends Component {
       coordinates || defaultLatLon,
       (err, error, response) => {
         if (response && response.Stations) {
-          this.setState({ stations: response.Stations, now: DateTime.utc() });
+          this.setState({ stations: response.Stations });
         }
       }
     );
@@ -27,24 +27,26 @@ class MTA extends Component {
 
   componentDidMount() {
     this.refreshFeed(this.props.coordinates);
-    this.timer = setInterval(() => {
+    this.feedInterval = setInterval(() => {
       this.refreshFeed(this.props.coordinates);
     }, 30000);
   }
 
   componentWillReceiveProps(nextProps) {
-    this.refreshFeed(nextProps.coordinates);
+    if (nextProps.coordinates) {
+      this.refreshFeed(nextProps.coordinates);
+    }
   }
 
   componentWillUnmount() {
-    clearInterval(this.timer);
+    clearInterval(this.feedInterval);
   }
 
   renderArrival(header, trips = []) {
     const t = trips.filter(v => {
       const arrival = DateTime.fromISO(v.Arrival, { setZone: true });
       return (
-        Math.round(arrival.diff(this.state.now, "minutes").toObject().minutes) >
+        Math.round(arrival.diff(this.props.now, "minutes").toObject().minutes) >
         0
       );
     });
@@ -53,7 +55,7 @@ class MTA extends Component {
       .map(v => {
         const arrival = DateTime.fromISO(v.Arrival, { setZone: true });
         const time = Math.round(
-          arrival.diff(this.state.now, "minutes").toObject().minutes
+          arrival.diff(this.props.now, "minutes").toObject().minutes
         );
         return (
           <span>
@@ -85,7 +87,7 @@ class MTA extends Component {
     const schedules = Schedules || {};
     const updated = Math.round(
       DateTime.fromISO(station.Updated, { setZone: true })
-        .diff(this.state.now, "minutes")
+        .diff(this.props.now, "minutes")
         .toObject().minutes
     );
 

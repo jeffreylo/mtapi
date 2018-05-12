@@ -1,5 +1,6 @@
 import { h, render } from "preact";
 import queryString from "query-string";
+import { DateTime } from "luxon";
 
 import { getLocation } from "./location";
 import MTA from "./components/mta";
@@ -20,7 +21,11 @@ if (location.search) {
 
 const renderApp = coordinates => {
   const rootNode = document.getElementById("root");
-  render(<MTA coordinates={coordinates} />, rootNode, rootNode.lastChild);
+  render(
+    <MTA coordinates={coordinates} now={DateTime.utc()} />,
+    rootNode,
+    rootNode.lastChild
+  );
 };
 
 // Render app with existing or specified knowledge.
@@ -30,7 +35,7 @@ renderApp(coordinates);
 // permissions.
 if (!location.search) {
   getLocation().then(location => {
-    const coordinates = {
+    coordinates = {
       Lat: location.coords.latitude,
       Lon: location.coords.longitude
     };
@@ -39,3 +44,7 @@ if (!location.search) {
     renderApp(coordinates);
   });
 }
+
+setInterval(() => {
+  renderApp(coordinates)
+}, 1000);
