@@ -20,8 +20,8 @@ $ open http://datamine.mta.info/user
 $ git clone git@github.com:jeffreylo/mtapi
 $ cd $GOPATH/src/github.com/jeffreylo/mtapi
 $ go install ./...
-$ mtapi -apiKey=$MTA_API_TOKEN -path=$(pwd)/data/gtfs -port=8080
-$ echo '{"jsonrpc": "2.0","method": "GetStation","params": { "ID": "132" },"id": "243a718a-2ebb-4e32-8cc8-210c39e8a14b"}' | http POST http://localhost:8080/rpc
+$ mtapi -api-key=${MTA_API_TOKEN} -gtfs-path=$(pwd)/data/gtfs -port=9090
+$ open http://localhost:9090
 ```
 
 ## Demo
