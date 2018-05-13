@@ -16,6 +16,7 @@ type Coordinates struct {
 type Update struct {
 	TripID  string
 	Arrival *time.Time
+	Delay   int32
 	RouteID string
 }
 
@@ -53,10 +54,10 @@ func (p *Protocol) Schedules(v map[mta.Direction]mta.Schedule) Schedules {
 			if strings.HasSuffix(routeID, "S") {
 				routeID = "S"
 			}
-
 			vv = append(vv, &Update{
 				TripID:  u.TripID,
 				Arrival: u.Arrival,
+				Delay:   u.Delay,
 				RouteID: routeID,
 			})
 		}

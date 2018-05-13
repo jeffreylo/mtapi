@@ -72,13 +72,16 @@ func (c *Client) refreshFeed(feedID int) {
 					Delay:   arrival.GetDelay(),
 					Arrival: &arrivalTime,
 				}
-				if arrivalTime.After(now) && !stop.Schedules[direction].contains(update) {
+				stopPos := stop.Schedules[direction].contains(update)
+				if stopPos < 0 {
 					stop.Schedules[direction] = append(stop.Schedules[direction], update)
-					cleanupSchedule(stop.Schedules[direction])
-					sort.Sort(ScheduleByArrival(stop.Schedules[direction]))
-					stop.Updated = &now
+				} else {
+					stop.Schedules[direction][stopPos] = update
 				}
+				stop.Updated = &now
 			}
+			stop.Schedules[direction] = cleanupSchedule(stop.Schedules[direction])
+			sort.Sort(ScheduleByArrival(stop.Schedules[direction]))
 		}
 	}
 }

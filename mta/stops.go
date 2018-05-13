@@ -42,19 +42,17 @@ func (s ScheduleByArrival) Less(i, j int) bool {
 // Schedule defines the times for a route.
 type Schedule []*Update
 
-func (s Schedule) contains(u *Update) bool {
-	for _, update := range s {
-		inputArrival := u.Arrival.Truncate(60 * time.Second)
-		updateArrival := (*update.Arrival).Truncate(60 * time.Second)
-		if inputArrival.Sub(updateArrival).Seconds() <= 30 && u.RouteID == update.RouteID {
-			return true
+func (s Schedule) contains(u *Update) int {
+	for k, update := range s {
+		if u.TripID == update.TripID {
+			return k
 		}
 	}
-	return false
+	return -1
 }
 
-func cleanupSchedule(s Schedule) {
-	now := time.Now()
+func cleanupSchedule(s Schedule) Schedule {
+	now := time.Now().UTC()
 	tripIDs := make(map[string]struct{})
 	y := s[:0]
 	for _, n := range s {
@@ -65,6 +63,7 @@ func cleanupSchedule(s Schedule) {
 			tripIDs[n.TripID] = struct{}{}
 		}
 	}
+	return y
 }
 
 // Direction represents the vector.
