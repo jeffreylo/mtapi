@@ -28,6 +28,7 @@ type Client struct {
 	stops    Stops
 	stations Stations
 	tree     *kdtree.KDTree
+	mtx      *sync.Mutex
 
 	err     chan error
 	done    chan struct{}
@@ -53,6 +54,7 @@ func NewClient(cfg *ClientConfig) (*Client, error) {
 		apiKey:   cfg.APIKey,
 		stops:    stops,
 		stations: stations,
+		mtx:      &sync.Mutex{},
 		tree:     tree,
 		port:     cfg.Port,
 		err:      make(chan error),

@@ -72,6 +72,7 @@ func (c *Client) refreshFeed(feedID int) {
 					Delay:   arrival.GetDelay(),
 					Arrival: &arrivalTime,
 				}
+				c.mtx.Lock()
 				stopPos := stop.Schedules[direction].contains(update)
 				if stopPos < 0 {
 					stop.Schedules[direction] = append(stop.Schedules[direction], update)
@@ -79,9 +80,10 @@ func (c *Client) refreshFeed(feedID int) {
 					stop.Schedules[direction][stopPos] = update
 				}
 				stop.Updated = &now
+				stop.Schedules[direction] = cleanupSchedule(stop.Schedules[direction])
+				sort.Sort(ScheduleByArrival(stop.Schedules[direction]))
+				c.mtx.Unlock()
 			}
-			stop.Schedules[direction] = cleanupSchedule(stop.Schedules[direction])
-			sort.Sort(ScheduleByArrival(stop.Schedules[direction]))
 		}
 	}
 }
