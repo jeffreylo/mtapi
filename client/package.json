@@ -7,6 +7,7 @@
     "build": "webpack"
   },
   "dependencies": {
+    "humanize-duration": "3.14.0",
     "jayson": "2.0.6",
     "luxon": "1.2.0",
     "node-fetch": "2.1.2",

@@ -1,6 +1,7 @@
 import { h, Component } from "preact";
 import { DateTime } from "luxon";
 
+import humanizer from "../duration";
 import rpc from "../rpc";
 import css from "./mta.css";
 
@@ -33,7 +34,7 @@ class MTA extends Component {
   }
 
   componentWillReceiveProps(nextProps) {
-    if (nextProps.coordinates) {
+    if (nextProps.coordinates.Lat != this.props.coordinates.Lat) {
       this.refreshFeed(nextProps.coordinates);
     }
   }
@@ -43,23 +44,14 @@ class MTA extends Component {
   }
 
   renderArrival(header, trips = []) {
-    const t = trips.filter(v => {
-      const arrival = DateTime.fromISO(v.Arrival, { setZone: true });
-      return (
-        Math.round(arrival.diff(this.props.now, "minutes").toObject().minutes) >
-        0
-      );
-    });
-
-    let timings = t
+    let timings = trips
       .map(v => {
         const arrival = DateTime.fromISO(v.Arrival, { setZone: true });
-        const time = Math.round(
-          arrival.diff(this.props.now, "minutes").toObject().minutes
-        );
         return (
           <span>
-            {v.RouteID}: {time} min<br />
+            {v.TripID}:{" "}
+            {humanizer(this.props.now.diff(arrival).toObject().milliseconds)}{" "}
+            <br />
           </span>
         );
       })
@@ -68,10 +60,9 @@ class MTA extends Component {
         -<br />
       </span>
     ];
-    if (timings.length < 5) {
-      while (timings.length < 5) {
-        timings.push(<br />);
-      }
+
+    while (timings.length < 5) {
+      timings.push(<br />);
     }
     return (
       <div>
@@ -96,8 +87,8 @@ class MTA extends Component {
         <p>
           <strong>{station.Name}</strong>
         </p>
-        {this.renderArrival("N", schedules.N)}
-        {this.renderArrival("S", schedules.S)}
+        {this.renderArrival("Uptown / Manhattan", schedules.N)}
+        {this.renderArrival("Downtown / Brooklyn", schedules.S)}
         <p className={css.updated}>
           <small>
             {(updated && <span>~{Math.abs(updated)} min ago</span>) || (
@@ -112,8 +103,11 @@ class MTA extends Component {
   render(props, state) {
     let stations = state.stations;
     return (
-      <div className={css.container}>
-        {stations.map(v => this.renderStation(v))}
+      <div>
+        <pre className={css.station}>{props.now.toISO()}</pre>
+        <div className={css.container}>
+          {stations.map(v => this.renderStation(v))}
+        </div>
       </div>
     );
   }
