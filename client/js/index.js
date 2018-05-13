@@ -22,7 +22,7 @@ if (location.search) {
 const renderApp = coordinates => {
   const rootNode = document.getElementById("root");
   render(
-    <MTA coordinates={coordinates} now={DateTime.utc()} />,
+    <MTA coordinates={coordinates} now={DateTime.local()} />,
     rootNode,
     rootNode.lastChild
   );

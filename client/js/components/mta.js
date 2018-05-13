@@ -49,7 +49,7 @@ class MTA extends Component {
         const arrival = DateTime.fromISO(v.Arrival, { setZone: true });
         return (
           <span>
-            {v.TripID}:{" "}
+            {v.RouteID}:{" "}
             {humanizer(this.props.now.diff(arrival).toObject().milliseconds)}{" "}
             <br />
           </span>
@@ -104,7 +104,7 @@ class MTA extends Component {
     let stations = state.stations;
     return (
       <div>
-        <pre className={css.station}>{props.now.toISO()}</pre>
+        <pre className={css.station}>{props.now.toLocaleString(DateTime.DATETIME_MED_WITH_SECONDS)}</pre>
         <div className={css.container}>
           {stations.map(v => this.renderStation(v))}
         </div>
