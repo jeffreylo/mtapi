@@ -9,6 +9,12 @@
   </head>
   <body>
     <div id="root" />
+    <script>
+      window._ENVIRONMENT_ = {
+        environment: "{{.Environment}}",
+        release: "{{.Release}}"
+      };
+    </script>
     <script defer src="/static/index.js"></script>
   </body>
 </html>

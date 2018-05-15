@@ -52,10 +52,12 @@ func main() {
 	go client.Work()
 
 	server := server.New(&server.Params{
-		Client:     client,
-		EnsureSSL:  *ensureSSL,
-		Port:       *port,
-		StaticPath: *staticPath,
+		Client:      client,
+		EnsureSSL:   *ensureSSL,
+		Environment: *environment,
+		Port:        *port,
+		Release:     *release,
+		StaticPath:  *staticPath,
 	})
 	log.Fatal(server.Serve())
 }

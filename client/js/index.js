@@ -19,10 +19,17 @@ if (location.search) {
   coordinates = { Lat: latitude, Lon: longitude };
 }
 
+const { environment, release } = window._ENVIRONMENT_ || {};
+
 const renderApp = coordinates => {
   const rootNode = document.getElementById("root");
   render(
-    <MTA coordinates={coordinates} now={DateTime.local()} />,
+    <div>
+      <pre>{environment}@{release}</pre>
+      <MTA
+        coordinates={coordinates}
+        now={DateTime.local()} />
+    </div>,
     rootNode,
     rootNode.lastChild
   );

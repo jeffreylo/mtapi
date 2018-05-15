@@ -16,19 +16,23 @@ import (
 
 // Server is the interface to the MTA API.
 type Server struct {
-	client     *mta.Client
-	port       int
-	dispatcher *jsonrpc.MethodRepository
-	staticPath string
-	ensureSSL  bool
+	client      *mta.Client
+	dispatcher  *jsonrpc.MethodRepository
+	ensureSSL   bool
+	environment string
+	port        int
+	release     string
+	staticPath  string
 }
 
 // Params defines the server dependencies.
 type Params struct {
-	Client     *mta.Client
-	EnsureSSL  bool
-	Port       int
-	StaticPath string
+	Client      *mta.Client
+	EnsureSSL   bool
+	Environment string
+	Port        int
+	Release     string
+	StaticPath  string
 }
 
 // New returns a server instance with the specified parameters.
@@ -40,11 +44,13 @@ func New(p *Params) *Server {
 	must(mr.RegisterMethod("GetClosest", GetClosestHandler{client: p.Client, p: protocol.New()}, GetClosestParams{}, GetClosestResult{}))
 
 	return &Server{
-		client:     p.Client,
-		dispatcher: mr,
-		ensureSSL:  p.EnsureSSL,
-		port:       p.Port,
-		staticPath: p.StaticPath,
+		client:      p.Client,
+		dispatcher:  mr,
+		ensureSSL:   p.EnsureSSL,
+		environment: p.Environment,
+		port:        p.Port,
+		release:     p.Release,
+		staticPath:  p.StaticPath,
 	}
 }
 
@@ -67,7 +73,7 @@ func (s *Server) Serve() error {
 
 	var fileHandler, indexHandler, rpcHandler http.Handler
 	fileHandler = http.StripPrefix("/static/", http.FileServer(http.Dir(s.staticPath)))
-	indexHandler = http.HandlerFunc(serveTemplate)
+	indexHandler = serveTemplate(&tmplData{s.environment, s.release})
 	rpcHandler = s.dispatcher
 	if s.ensureSSL {
 		fileHandler = ensureSSL(fileHandler)
@@ -88,19 +94,23 @@ func (s *Server) Serve() error {
 	return srv.ListenAndServe()
 }
 
-func serveTemplate(w http.ResponseWriter, r *http.Request) {
+type tmplData struct{ Environment, Release string }
+
+func serveTemplate(data *tmplData) http.HandlerFunc {
 	lp := filepath.Join("client", "templates", "index.html")
 	tmpl, err := template.ParseFiles(lp)
-	if err != nil {
-		log.Println(err.Error())
-		http.Error(w, http.StatusText(500), 500)
-		return
-	}
 
-	if err := tmpl.ExecuteTemplate(w, "layout", nil); err != nil {
-		log.Println(err.Error())
-		http.Error(w, http.StatusText(500), 500)
-	}
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, http.StatusText(500), 500)
+			return
+		}
+		if err := tmpl.ExecuteTemplate(w, "layout", data); err != nil {
+			log.Println(err.Error())
+			http.Error(w, http.StatusText(500), 500)
+		}
+	})
 }
 
 func must(err error) {
