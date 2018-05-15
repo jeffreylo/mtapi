@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	raven "github.com/getsentry/raven-go"
 	"github.com/kyroy/kdtree"
 )
 
@@ -71,17 +72,19 @@ func (c *Client) Close() error {
 
 // Work starts the feed fetcher.
 func (c *Client) Work() {
-	c.refreshFeeds()
-	ticker := time.NewTicker(refreshInterval)
-	for {
-		select {
-		case <-ticker.C:
-			c.refreshFeeds()
-		case <-c.done:
-			ticker.Stop()
-			return
+	raven.CapturePanic(func() {
+		c.refreshFeeds()
+		ticker := time.NewTicker(refreshInterval)
+		for {
+			select {
+			case <-ticker.C:
+				c.refreshFeeds()
+			case <-c.done:
+				ticker.Stop()
+				return
+			}
 		}
-	}
+	}, nil)
 }
 
 func (c *Client) refreshFeeds() {
