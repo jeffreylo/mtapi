@@ -55,7 +55,7 @@ class MTA extends Component {
           </span>
         );
       })
-      .slice(0, 5) || [
+      .slice(0, 10) || [
       <span>
         -<br />
       </span>

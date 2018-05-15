@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net/http"
+	"sort"
 	"sync"
 	"time"
 
@@ -146,6 +147,8 @@ func (c *Client) GetStation(id StopID) (*StationSchedule, error) {
 				stationSchedule[d] = make(Schedule, 0, len(s))
 			}
 			stationSchedule[d] = append(stationSchedule[d], s...)
+			stationSchedule[d] = cleanupSchedule(stationSchedule[d])
+			sort.Sort(ScheduleByArrival(stationSchedule[d]))
 		}
 	}
 	return &StationSchedule{
