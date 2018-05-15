@@ -9,6 +9,8 @@ import (
 
 	raven "github.com/getsentry/raven-go"
 	"github.com/kyroy/kdtree"
+	"github.com/kyroy/kdtree/points"
+	"github.com/pkg/errors"
 )
 
 const (
@@ -123,5 +125,49 @@ func (c *Client) Stops() Stops { return c.stops }
 // Stations returns all stations.
 func (c *Client) Stations() Stations { return c.stations }
 
-// Tree returns the tree.
-func (c *Client) Tree() *kdtree.KDTree { return c.tree }
+type StationSchedule struct {
+	*Station
+	Schedules map[Direction]Schedule
+}
+
+const maxStations = 5
+
+func (c *Client) GetStation(id StopID) (*StationSchedule, error) {
+	s, ok := c.stations[id]
+	if !ok {
+		return nil, errors.New("station not found")
+	}
+
+	stationSchedule := make(map[Direction]Schedule)
+	for _, id := range s.StopIDs() {
+		stop := c.stops[id]
+		for d, s := range stop.Schedules {
+			if _, ok := stationSchedule[d]; !ok {
+				stationSchedule[d] = make(Schedule, 0, len(s))
+			}
+			stationSchedule[d] = append(stationSchedule[d], s...)
+		}
+	}
+	return &StationSchedule{
+		Station:   s,
+		Schedules: stationSchedule,
+	}, nil
+}
+func (c *Client) GetClosestStations(latitude, longitude float64, numStations int) []*StationSchedule {
+	if numStations >= maxStations {
+		numStations = maxStations
+	} else if numStations <= 0 {
+		numStations = 1
+	}
+	results := c.tree.KNN(&points.Point{Coordinates: []float64{latitude, longitude}}, numStations)
+	stations := make([]*StationSchedule, 0, len(results))
+	for _, v := range results {
+		point := v.(*points.Point)
+		stationSchedule, err := c.GetStation(point.Data.(StopID))
+		if err != nil {
+			continue
+		}
+		stations = append(stations, stationSchedule)
+	}
+	return stations
+}

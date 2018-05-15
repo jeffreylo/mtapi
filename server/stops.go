@@ -2,13 +2,10 @@ package server
 
 import (
 	"context"
-	"fmt"
-	"time"
 
 	"github.com/intel-go/fastjson"
 	"github.com/jeffreylo/mtapi/mta"
 	"github.com/jeffreylo/mtapi/server/protocol"
-	"github.com/kyroy/kdtree/points"
 	"github.com/osamingo/jsonrpc"
 )
 
@@ -43,30 +40,14 @@ func (h GetStationHandler) ServeJSONRPC(c context.Context, params *fastjson.RawM
 		return nil, err
 	}
 
-	stops := h.client.Stops()
-	stations := h.client.Stations()
-	station, ok := stations[mta.StopID(p.ID)]
-	if !ok {
+	station, err := h.client.GetStation(mta.StopID(p.ID))
+	if err != nil {
 		return nil, &jsonrpc.Error{
 			Code:    jsonrpc.ErrorCodeInvalidParams,
-			Message: fmt.Sprintf("Station ID=%s is invalid or does not exist.", p.ID),
+			Message: err.Error(),
 		}
 	}
-
-	stationSchedule := make(map[mta.Direction]mta.Schedule)
-	var updated *time.Time
-	for _, id := range station.StopIDs() {
-		stop := stops[id]
-		for d, s := range stop.Schedules {
-			if _, ok := stationSchedule[d]; !ok {
-				stationSchedule[d] = make(mta.Schedule, 0, len(s))
-			}
-			stationSchedule[d] = append(stationSchedule[d], s...)
-		}
-		updated = stop.Updated
-	}
-
-	return GetStationResult{Station: h.p.Station(station, stationSchedule, updated)}, nil
+	return GetStationResult{Station: h.p.Station(station)}, nil
 }
 
 // GetStationResult describes the response of the GetStations RPC.
@@ -87,26 +68,10 @@ func (h GetClosestHandler) ServeJSONRPC(c context.Context, params *fastjson.RawM
 	if err := jsonrpc.Unmarshal(params, &p); err != nil {
 		return nil, err
 	}
-
-	tree := h.client.Tree()
-	results := tree.KNN(&points.Point{Coordinates: []float64{p.Lat, p.Lon}}, 5)
-	stations := make([]*protocol.Station, 0, len(results))
-	for _, v := range results {
-		point := v.(*points.Point)
-		s := h.client.Stations()[point.Data.(mta.StopID)]
-		stationSchedule := make(map[mta.Direction]mta.Schedule)
-		var updated *time.Time
-		for _, id := range s.StopIDs() {
-			stop := h.client.Stops()[id]
-			for d, s := range stop.Schedules {
-				if _, ok := stationSchedule[d]; !ok {
-					stationSchedule[d] = make(mta.Schedule, 0, len(s))
-				}
-				stationSchedule[d] = append(stationSchedule[d], s...)
-			}
-			updated = stop.Updated
-		}
-		stations = append(stations, h.p.Station(s, stationSchedule, updated))
+	stations := h.client.GetClosestStations(p.Lat, p.Lon, 1)
+	vv := make([]*protocol.Station, 0, len(stations))
+	for _, v := range stations {
+		vv = append(vv, h.p.Station(v))
 	}
 	return GetClosestResult{Stations: stations}, nil
 }

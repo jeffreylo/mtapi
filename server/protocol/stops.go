@@ -67,7 +67,7 @@ func (p *Protocol) Schedules(v map[mta.Direction]mta.Schedule) Schedules {
 	return w
 }
 
-func (p *Protocol) Station(v *mta.Station, schedules map[mta.Direction]mta.Schedule, updated *time.Time) *Station {
+func (p *Protocol) Station(v *mta.StationSchedule) *Station {
 	return &Station{
 		ID:   string(v.ID),
 		Name: v.Name,
@@ -75,8 +75,7 @@ func (p *Protocol) Station(v *mta.Station, schedules map[mta.Direction]mta.Sched
 			Lat: v.Coordinates.Lat,
 			Lon: v.Coordinates.Lon,
 		},
-		Schedules: p.Schedules(schedules),
-		Updated:   updated,
+		Schedules: p.Schedules(v.Schedules),
 	}
 }
 
