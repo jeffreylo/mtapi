@@ -17,7 +17,7 @@ type GetStationsHandler struct {
 
 // ServeJSONRPC implements the jsonrpc handler interface.
 func (h GetStationsHandler) ServeJSONRPC(c context.Context, params *fastjson.RawMessage) (interface{}, *jsonrpc.Error) {
-	stations := h.client.Stations()
+	stations := h.client.GetStations()
 	return GetStationsResult{Stations: h.p.Stations(stations)}, nil
 }
 
@@ -40,7 +40,7 @@ func (h GetStationHandler) ServeJSONRPC(c context.Context, params *fastjson.RawM
 		return nil, err
 	}
 
-	station, err := h.client.GetStation(mta.StopID(p.ID))
+	station, err := h.client.GetStation(mta.StationID(p.ID))
 	if err != nil {
 		return nil, &jsonrpc.Error{
 			Code:    jsonrpc.ErrorCodeInvalidParams,
@@ -60,7 +60,10 @@ type GetClosestHandler struct {
 }
 
 // GetClosestParams defines the parameters of the GetClosest RPC.
-type GetClosestParams struct{ Lat, Lon float64 }
+type GetClosestParams struct {
+	Lat, Lon    float64
+	NumStations int
+}
 
 // ServeJSONRPC implements the jsonrpc handler interface.
 func (h GetClosestHandler) ServeJSONRPC(c context.Context, params *fastjson.RawMessage) (interface{}, *jsonrpc.Error) {
@@ -68,7 +71,7 @@ func (h GetClosestHandler) ServeJSONRPC(c context.Context, params *fastjson.RawM
 	if err := jsonrpc.Unmarshal(params, &p); err != nil {
 		return nil, err
 	}
-	stations := h.client.GetClosestStations(p.Lat, p.Lon, 1)
+	stations := h.client.GetClosestStations(&mta.Coordinates{Lat: p.Lat, Lon: p.Lon}, p.NumStations)
 	vv := make([]*protocol.Station, 0, len(stations))
 	for _, v := range stations {
 		vv = append(vv, h.p.Station(v))

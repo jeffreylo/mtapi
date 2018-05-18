@@ -1,7 +1,6 @@
 package protocol
 
 import (
-	"sort"
 	"strings"
 	"time"
 
@@ -13,61 +12,43 @@ type Coordinates struct {
 	Lon float64
 }
 
-type Update struct {
+type Arrival struct {
 	TripID  string
-	Arrival *time.Time
-	Delay   int32
+	Time    *time.Time
 	RouteID string
 }
 
-// UpdateByArrival sorts Update by arrival time.
-type UpdateByArrival []*Update
-
-func (s UpdateByArrival) Len() int {
-	return len(s)
-}
-func (s UpdateByArrival) Swap(i, j int) {
-	s[i], s[j] = s[j], s[i]
-}
-func (s UpdateByArrival) Less(i, j int) bool {
-	return s[i].Arrival.Before(*s[j].Arrival)
-}
-
-type Schedules map[mta.Direction][]*Update
+type Arrivals map[mta.Direction][]*Arrival
 
 type Station struct {
 	ID          string
 	Name        string
 	Coordinates *Coordinates
-	StopIDs     []mta.StopID `json:",omitempty"`
-
-	Schedules Schedules  `json:",omitempty"`
-	Updated   *time.Time `json:",omitempty"`
+	Arrivals    map[mta.Direction][]*Arrival `json:",omitempty"`
+	Updated     *time.Time                   `json:",omitempty"`
 }
 
-func (p *Protocol) Schedules(v map[mta.Direction]mta.Schedule) Schedules {
-	w := make(Schedules)
+func (p *Protocol) Arrivals(v map[mta.Direction][]*mta.Arrival) Arrivals {
+	w := make(Arrivals)
 	for d, s := range v {
-		vv := make([]*Update, 0, len(s))
+		vv := make([]*Arrival, 0, len(s))
 		for _, u := range s {
 			routeID := u.RouteID
 			if strings.HasSuffix(routeID, "S") {
 				routeID = "S"
 			}
-			vv = append(vv, &Update{
+			vv = append(vv, &Arrival{
 				TripID:  u.TripID,
-				Arrival: u.Arrival,
-				Delay:   u.Delay,
+				Time:    u.Time,
 				RouteID: routeID,
 			})
 		}
 		w[d] = vv
-		sort.Sort(UpdateByArrival(w[d]))
 	}
 	return w
 }
 
-func (p *Protocol) Station(v *mta.StationSchedule) *Station {
+func (p *Protocol) Station(v *mta.Station) *Station {
 	return &Station{
 		ID:   string(v.ID),
 		Name: v.Name,
@@ -75,7 +56,7 @@ func (p *Protocol) Station(v *mta.StationSchedule) *Station {
 			Lat: v.Coordinates.Lat,
 			Lon: v.Coordinates.Lon,
 		},
-		Schedules: p.Schedules(v.Schedules),
+		Arrivals: p.Arrivals(v.Arrivals),
 	}
 }
 
@@ -89,7 +70,6 @@ func (p *Protocol) Stations(stations mta.Stations) []*Station {
 				Lat: station.Coordinates.Lat,
 				Lon: station.Coordinates.Lon,
 			},
-			StopIDs: station.StopIDs(),
 		})
 	}
 	return result

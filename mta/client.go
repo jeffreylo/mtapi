@@ -4,14 +4,11 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net/http"
-	"sort"
 	"sync"
 	"time"
 
 	raven "github.com/getsentry/raven-go"
 	"github.com/kyroy/kdtree"
-	"github.com/kyroy/kdtree/points"
-	"github.com/pkg/errors"
 )
 
 const (
@@ -29,7 +26,7 @@ type Client struct {
 	ignoreSSL bool
 	port      int
 
-	stops    Stops
+	stops    map[string]StationID
 	stations Stations
 	tree     *kdtree.KDTree
 	mtx      *sync.Mutex
@@ -50,19 +47,20 @@ type ClientConfig struct {
 
 // NewClient returns a new instance of the MTA client.
 func NewClient(cfg *ClientConfig) (*Client, error) {
-	stops, stations, tree, err := Parse(cfg.StopsFilePath, cfg.TransfersFilePath)
+	parser := &Parser{cfg.StopsFilePath, cfg.TransfersFilePath}
+	result, err := parser.Parse()
 	if err != nil {
 		return nil, err
 	}
 	c := &Client{
 		apiKey:   cfg.APIKey,
-		stops:    stops,
-		stations: stations,
-		mtx:      &sync.Mutex{},
-		tree:     tree,
-		port:     cfg.Port,
-		err:      make(chan error),
 		done:     make(chan struct{}),
+		err:      make(chan error),
+		mtx:      &sync.Mutex{},
+		port:     cfg.Port,
+		stations: result.Stations,
+		stops:    result.StationMap,
+		tree:     result.Tree,
 	}
 	return c, nil
 }
@@ -118,59 +116,4 @@ func (c *Client) httpClient() *http.Client {
 
 func (c *Client) getFeedURL(feedID int) string {
 	return fmt.Sprintf("%s?&key=%s&feed_id=%d", feedBaseURL, c.apiKey, feedID)
-}
-
-// Stops returns all stops.
-func (c *Client) Stops() Stops { return c.stops }
-
-// Stations returns all stations.
-func (c *Client) Stations() Stations { return c.stations }
-
-type StationSchedule struct {
-	*Station
-	Schedules map[Direction]Schedule
-}
-
-const maxStations = 5
-
-func (c *Client) GetStation(id StopID) (*StationSchedule, error) {
-	s, ok := c.stations[id]
-	if !ok {
-		return nil, errors.New("station not found")
-	}
-
-	stationSchedule := make(map[Direction]Schedule)
-	for _, id := range s.StopIDs() {
-		stop := c.stops[id]
-		for d, s := range stop.Schedules {
-			if _, ok := stationSchedule[d]; !ok {
-				stationSchedule[d] = make(Schedule, 0, len(s))
-			}
-			stationSchedule[d] = append(stationSchedule[d], s...)
-			stationSchedule[d] = cleanupSchedule(stationSchedule[d])
-			sort.Sort(ScheduleByArrival(stationSchedule[d]))
-		}
-	}
-	return &StationSchedule{
-		Station:   s,
-		Schedules: stationSchedule,
-	}, nil
-}
-func (c *Client) GetClosestStations(latitude, longitude float64, numStations int) []*StationSchedule {
-	if numStations >= maxStations {
-		numStations = maxStations
-	} else if numStations <= 0 {
-		numStations = 1
-	}
-	results := c.tree.KNN(&points.Point{Coordinates: []float64{latitude, longitude}}, numStations)
-	stations := make([]*StationSchedule, 0, len(results))
-	for _, v := range results {
-		point := v.(*points.Point)
-		stationSchedule, err := c.GetStation(point.Data.(StopID))
-		if err != nil {
-			continue
-		}
-		stations = append(stations, stationSchedule)
-	}
-	return stations
 }

@@ -2,7 +2,7 @@ import { h, Component } from "preact";
 import { DateTime } from "luxon";
 
 import humanizer from "../duration";
-import rpc from "../rpc";
+import { GetClosestStations } from "../rpc";
 import css from "./mta.css";
 
 // Times Square - 42 St.
@@ -15,15 +15,9 @@ class MTA extends Component {
   }
 
   refreshFeed(coordinates) {
-    rpc.request(
-      "GetClosest",
-      coordinates || defaultLatLon,
-      (err, error, response) => {
-        if (response && response.Stations) {
-          this.setState({ stations: response.Stations });
-        }
-      }
-    );
+    GetClosestStations(coordinates || defaultLatLon).then(stations => {
+      this.setState({ stations: stations });
+    });
   }
 
   componentDidMount() {
@@ -34,7 +28,7 @@ class MTA extends Component {
   }
 
   componentWillReceiveProps(nextProps) {
-    if (nextProps.coordinates.Lat != this.props.coordinates.Lat) {
+    if (nextProps.coordinates && nextProps.coordinates.Lat != (this.props.coordinates || {}).Lat) {
       this.refreshFeed(nextProps.coordinates);
     }
   }
@@ -46,7 +40,7 @@ class MTA extends Component {
   renderArrival(header, trips = []) {
     let timings = trips
       .map(v => {
-        const arrival = DateTime.fromISO(v.Arrival, { setZone: true });
+        const arrival = DateTime.fromISO(v.Time, { setZone: true });
         return (
           <span>
             {v.RouteID}:{" "}
@@ -61,12 +55,12 @@ class MTA extends Component {
       </span>
     ];
 
-    while (timings.length < 5) {
+    while (timings.length < 10) {
       timings.push(<br />);
     }
     return (
       <div>
-        <h4>{header}</h4>
+        <h5>{header}</h5>
         {(timings.length && timings) || "-"}
       </div>
     );
@@ -74,8 +68,8 @@ class MTA extends Component {
 
   renderStation(station) {
     if (!station) return;
-    let { Schedules } = station;
-    const schedules = Schedules || {};
+    let { Arrivals } = station;
+    const schedules = Arrivals || {};
     const updated = Math.round(
       DateTime.fromISO(station.Updated, { setZone: true })
         .diff(this.props.now, "minutes")
@@ -104,7 +98,9 @@ class MTA extends Component {
     let stations = state.stations;
     return (
       <div>
-        <pre className={css.station}>{props.now.toLocaleString(DateTime.DATETIME_MED_WITH_SECONDS)}</pre>
+        <pre className={css.station}>
+          {props.now.toLocaleString(DateTime.DATETIME_MED_WITH_SECONDS)}
+        </pre>
         <div className={css.container}>
           {stations.map(v => this.renderStation(v))}
         </div>

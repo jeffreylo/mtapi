@@ -2,7 +2,7 @@ package mta
 
 import (
 	"os"
-	"strings"
+	"time"
 
 	"github.com/gocarina/gocsv"
 	"github.com/jeffreylo/mtapi/pkg/strings2"
@@ -10,11 +10,33 @@ import (
 	"github.com/kyroy/kdtree/points"
 )
 
-// Parse parses the configuration files to create a Stops and
-// Stations.
-func Parse(stopsPath string, transfersPath string) (Stops, Stations, *kdtree.KDTree, error) {
+// separateStations are IDs of stations that should be considered
+// physically separate.
+var separateStations = []string{"A27", "132"}
+
+// canonicalID remaps IDs to their canonical station ID.
+var canonicalID = map[string]string{
+	"635": "L03", // Union Sq - 14 St :: 14 St - Union Sq
+	"R20": "L03", // Union Sq - 14 St :: 14 St - Union Sq
+	"725": "127", // Times Sq - 42 St
+	"902": "127", // Times Sq - 42 St
+	"R16": "127", // Times Sq - 42 St
+}
+
+// Parser returns station data from GTFS stop and transfer files.
+type Parser struct{ StopsPath, TransfersPath string }
+
+// parseResult returns the result of processing.
+type parseResult struct {
+	StationMap map[string]StationID
+	Stations   Stations
+	Tree       *kdtree.KDTree
+}
+
+// Parse parses the configuration files to create Stations.
+func (p *Parser) Parse() (*parseResult, error) {
 	type stopRow struct {
-		ID            StopID  `csv:"stop_id"`
+		ID            string  `csv:"stop_id"`
 		Name          string  `csv:"stop_name"`
 		Lat           float64 `csv:"stop_lat"`
 		Lon           float64 `csv:"stop_lon"`
@@ -23,39 +45,22 @@ func Parse(stopsPath string, transfersPath string) (Stops, Stations, *kdtree.KDT
 	}
 
 	type transferRow struct {
-		FromStopID      StopID `csv:"from_stop_id"`
-		ToStopID        StopID `csv:"to_stop_id"`
+		FromStopID      string `csv:"from_stop_id"`
+		ToStopID        string `csv:"to_stop_id"`
 		TransferType    int    `csv:"transfer_type"`
 		MinTransferTime int32  `csv:"min_transfer_time"`
 	}
 
 	isSeparateStation := func(t *transferRow) bool {
-		var separateStations = []string{"A27", "132"}
-		return !strings2.SliceContains(separateStations, string(t.FromStopID)) && !strings2.SliceContains(separateStations, string(t.ToStopID))
+		return !strings2.SliceContains(separateStations, t.FromStopID) && !strings2.SliceContains(separateStations, t.ToStopID)
 	}
 
-	nameMap := map[StopID]StopID{
-		"L03": "R20",
-		"127": "127",
-		"725": "127",
-		"902": "127",
-		"R16": "127",
-	}
-
-	if stopsPath == "" {
-		stopsPath = defaultStopsFile
-	}
-
-	if transfersPath == "" {
-		transfersPath = defaultTransfersFile
-	}
-
-	s, err := os.OpenFile(stopsPath, os.O_RDONLY, os.ModePerm)
+	s, err := os.OpenFile(p.StopsPath, os.O_RDONLY, os.ModePerm)
 	if err != nil {
 		panic(err)
 	}
 
-	t, err := os.OpenFile(transfersPath, os.O_RDONLY, os.ModePerm)
+	t, err := os.OpenFile(p.TransfersPath, os.O_RDONLY, os.ModePerm)
 	if err != nil {
 		panic(err)
 	}
@@ -70,71 +75,81 @@ func Parse(stopsPath string, transfersPath string) (Stops, Stations, *kdtree.KDT
 		panic(err)
 	}
 
-	stops := make(Stops, len(stopRows))
-	for _, stop := range stopRows {
-		if stop.ParentStation == "" {
-			stops[stop.ID] = &Stop{
-				ID:   stop.ID,
-				Name: stop.Name,
-				Coordinates: &Coordinates{
-					Lat: stop.Lat,
-					Lon: stop.Lon,
-				},
-				Schedules: make(map[Direction]Schedule),
+	type stop struct {
+		ID          string
+		Name        string
+		Coordinates struct{ Lat, Lon float64 }
+	}
+
+	stops := make(map[string]*stop, len(stopRows))
+	for _, v := range stopRows {
+		if v.ParentStation == "" {
+			stops[v.ID] = &stop{
+				ID:   v.ID,
+				Name: v.Name,
+				Coordinates: struct {
+					Lat, Lon float64
+				}{v.Lat, v.Lon},
 			}
 		}
 	}
 
-	sentinel := make(map[StopID]struct{})
 	tree := kdtree.New(nil)
+	stationMap := make(map[string]StationID)
 	stations := make(Stations, len(transferRows))
+
+	now := time.Now().UTC()
+
+	// Group by destination.
 	for _, transfer := range transferRows {
-		if _, ok := sentinel[transfer.ToStopID]; ok {
+		// If we've already processed the destination, skip it.
+		if _, ok := stationMap[transfer.ToStopID]; ok {
 			continue
 		}
 
+		// Some stop IDs need to be remapped because people
+		// think of them as the same station in real life.
 		originID := transfer.FromStopID
-		if remapID, ok := nameMap[originID]; ok {
+		if remapID, ok := canonicalID[originID]; ok {
 			originID = remapID
 		}
-		_, originExists := stations[originID]
-		if !originExists {
-			v, ok := stops[originID]
+
+		id := StationID(originID)
+		// If we haven't stored this in our Stations yet, do it.
+		if _, ok := stations[id]; !ok {
+			v, ok := stops[string(id)]
 			if !ok {
 				continue
 			}
 
-			stations[originID] = &Station{
-				ID:          originID,
-				Coordinates: v.Coordinates,
-				Stops:       make(map[StopID]struct{}),
+			// Create the station.
+			stations[id] = &Station{
+				ID:   id,
+				Name: v.Name,
+				Coordinates: &Coordinates{
+					Lat: v.Coordinates.Lat,
+					Lon: v.Coordinates.Lon,
+				},
+				Arrivals: make(map[Direction][]*Arrival),
+				Updated:  &now,
 			}
 
-			stations[originID].Stops[originID] = struct{}{}
-			tree.Insert(points.NewPoint([]float64{v.Coordinates.Lat, v.Coordinates.Lon}, originID))
-			sentinel[originID] = struct{}{}
+			// A station always maps to itself.
+			stationMap[originID] = id
+			tree.Insert(points.NewPoint([]float64{v.Coordinates.Lat, v.Coordinates.Lon}, id))
 		}
 
 		if isSeparateStation(transfer) {
-			stations[originID].Stops[transfer.ToStopID] = struct{}{}
-			sentinel[transfer.ToStopID] = struct{}{}
+			stationMap[transfer.ToStopID] = id
 		} else {
-			stations[originID].Stops[originID] = struct{}{}
-			sentinel[originID] = struct{}{}
+			// A station always maps to itself.
+			stationMap[originID] = id
 		}
 	}
 
-	for _, station := range stations {
-		names := make([]string, 0, len(station.StopIDs()))
-		for _, id := range station.StopIDs() {
-			if remapID, ok := nameMap[id]; ok {
-				id = remapID
-			}
-			names = append(names, stops[id].Name)
-		}
-		names = strings2.Unique(names)
-		station.Name = strings.Join(names, " / ")
-	}
-
-	return stops, stations, tree, nil
+	return &parseResult{
+		StationMap: stationMap,
+		Stations:   stations,
+		Tree:       tree,
+	}, nil
 }

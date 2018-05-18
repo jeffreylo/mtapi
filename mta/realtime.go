@@ -57,8 +57,9 @@ func (c *Client) refreshFeed(feedID int) {
 			if m[1] == "" {
 				continue
 			}
-			stop := c.GetStop(StopID(m[1]))
-			if stop == nil {
+
+			station, err := c.GetStationByStopID(m[1])
+			if err != nil {
 				continue
 			}
 
@@ -66,22 +67,28 @@ func (c *Client) refreshFeed(feedID int) {
 			arrival := update.GetArrival()
 			if arrival != nil {
 				arrivalTime := time.Unix(arrival.GetTime(), 0).UTC()
-				update := &Update{
-					TripID:  trip.GetTripId(),
+				update := &Arrival{
 					RouteID: trip.GetRouteId(),
-					Delay:   arrival.GetDelay(),
-					Arrival: &arrivalTime,
+					Time:    &arrivalTime,
+					TripID:  trip.GetTripId(),
 				}
+
 				c.mtx.Lock()
-				stopPos := stop.Schedules[direction].contains(update)
-				if stopPos < 0 {
-					stop.Schedules[direction] = append(stop.Schedules[direction], update)
-				} else {
-					stop.Schedules[direction][stopPos] = update
+
+				updated := false
+				for k, v := range station.Arrivals[direction] {
+					if v.TripID == update.TripID {
+						station.Arrivals[direction][k] = update
+						updated = true
+						break
+					}
 				}
-				stop.Updated = &now
-				stop.Schedules[direction] = cleanupSchedule(stop.Schedules[direction])
-				sort.Sort(ScheduleByArrival(stop.Schedules[direction]))
+				if !updated {
+					station.Arrivals[direction] = append(station.Arrivals[direction], update)
+				}
+				station.Updated = &now
+				station.Arrivals[direction] = cleanupArrivals(station.Arrivals[direction])
+				sort.Sort(ByArrivalTime(station.Arrivals[direction]))
 				c.mtx.Unlock()
 			}
 		}
