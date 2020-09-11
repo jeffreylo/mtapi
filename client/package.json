@@ -10,7 +10,7 @@
     "humanize-duration": "3.14.0",
     "jayson": "2.0.6",
     "luxon": "1.2.0",
-    "node-fetch": "2.1.2",
+    "node-fetch": "2.6.1",
     "preact": "8.2.9",
     "query-string": "6.1.0"
   },
